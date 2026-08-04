@@ -2,16 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>คำนวณชั่งกุ้ง</title>
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d2b2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="คำนวณชั่งกุ้ง">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="ชั่งกุ้ง">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<title>คำนวณชั่งกุ้ง</title>
 <style>
   :root{
     --bg: #0d2b2e;
@@ -320,6 +319,7 @@
 
     <div class="tline"><span>น้ำหนักตะกร้าสุทธิ</span><span id="out_basket_net">0.00 กก.</span></div>
     <div class="tline"><span>เศษสุทธิ</span><span id="out_rest">0.00 กก.</span></div>
+    <div class="tline"><span>น้ำหนักตัวอย่างกุ้งสุ่ม</span><span id="out_sample">0.00 กก.</span></div>
     <div class="tline"><span>น้ำหนักดิบก่อนหัก</span><span id="out_gross">0.00 กก.</span></div>
     <div class="tline"><span>หักเปอร์เซ็นต์</span><span id="out_deduct">0% (0.00 กก.)</span></div>
     <div class="tdiv"></div>
@@ -455,7 +455,7 @@
     const nimNet  = nimGroup.sumNet(wTare);
 
     const basketNet = (wBasket - wTare) * nBasket;
-    const grossNet = basketNet + restNet;
+    const grossNet = basketNet + restNet + sampleNet;
     const deductAmount = grossNet * (deductPercent / 100);
     const net = grossNet - deductAmount;
     const total = price * net;
@@ -471,6 +471,7 @@
 
     document.getElementById('out_basket_net').textContent = fmt(basketNet) + ' กก.';
     document.getElementById('out_rest').textContent = fmt(restNet) + ' กก.';
+    document.getElementById('out_sample').textContent = fmt(sampleNet) + ' กก.';
     document.getElementById('out_gross').textContent = fmt(grossNet) + ' กก.';
     document.getElementById('out_deduct').textContent = deductPercent + '% (' + fmt(deductAmount) + ' กก.)';
     document.getElementById('out_net').innerHTML = fmt(net) + '<span style="font-size:16px; color:var(--ink-dim)"> กก.</span>';
@@ -501,10 +502,14 @@
   });
 
   calculate();
+</script>
 
-  if('serviceWorker' in navigator){
+<script>
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {
+        // ignore registration errors (e.g. running from file://)
+      });
     });
   }
 </script>
