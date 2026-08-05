@@ -1,5 +1,6 @@
-const CACHE_NAME = 'shrimp-calc-cache-v1';
-const FILES_TO_CACHE = [
+const CACHE_NAME = 'shrimp-calculator-v3';
+const ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './icon-192.png',
@@ -8,7 +9,7 @@ const FILES_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
   self.skipWaiting();
 });
@@ -16,23 +17,24 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      )
     )
   );
   self.clients.claim();
 });
 
-// Cache-first, falling back to network, so the app opens even with no internet
+// Network-first: always try to get the latest file from the server first.
+// Only fall back to the cached copy if there's no internet connection.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        if (event.request.method === 'GET' && response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => cached);
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
