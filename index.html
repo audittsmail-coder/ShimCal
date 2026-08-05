@@ -2,16 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>คำนวณชั่งกุ้ง</title>
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d2b2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="คำนวณชั่งกุ้ง">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="ชั่งกุ้ง">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<title>คำนวณชั่งกุ้ง</title>
 <style>
   :root{
     --bg: #0d2b2e;
@@ -282,6 +281,7 @@
     <div class="panel-title">เศษที่ชั่ง <span style="text-transform:none; font-weight:400;">(ใส่ได้หลายรายการ)</span></div>
     <div id="restRows"></div>
     <button type="button" class="add-row" id="addRow">+ เพิ่มเศษ</button>
+    <div class="rest-subtotal"><span>น้ำหนักก่อนหักตะกร้า</span><span id="restGross">0.00 กก.</span></div>
     <div class="rest-subtotal"><span>รวมเศษสุทธิ</span><span id="restSubtotal">0.00 กก.</span></div>
   </div>
 
@@ -289,6 +289,7 @@
     <div class="panel-title">กุ้งฝอย <span style="text-transform:none; font-weight:400;">(ใส่ได้หลายรายการ)</span></div>
     <div id="shrimpFoyRows"></div>
     <button type="button" class="add-row" id="addShrimpFoy">+ เพิ่มกุ้งฝอย</button>
+    <div class="rest-subtotal"><span>น้ำหนักก่อนหักตะกร้า</span><span id="shrimpFoyGross">0.00 กก.</span></div>
     <div class="rest-subtotal"><span>รวมน้ำหนักกุ้งฝอยสุทธิ</span><span id="shrimpFoySubtotal">0.00 กก.</span></div>
   </div>
 
@@ -296,6 +297,7 @@
     <div class="panel-title">กุ้งนิ่ม <span style="text-transform:none; font-weight:400;">(ใส่ได้หลายรายการ)</span></div>
     <div id="shrimpNimRows"></div>
     <button type="button" class="add-row" id="addShrimpNim">+ เพิ่มกุ้งนิ่ม</button>
+    <div class="rest-subtotal"><span>น้ำหนักก่อนหักตะกร้า</span><span id="shrimpNimGross">0.00 กก.</span></div>
     <div class="rest-subtotal"><span>รวมน้ำหนักกุ้งนิ่มสุทธิ</span><span id="shrimpNimSubtotal">0.00 กก.</span></div>
   </div>
 
@@ -320,6 +322,7 @@
 
     <div class="tline"><span>น้ำหนักตะกร้าสุทธิ</span><span id="out_basket_net">0.00 กก.</span></div>
     <div class="tline"><span>เศษสุทธิ</span><span id="out_rest">0.00 กก.</span></div>
+    <div class="tline"><span>น้ำหนักตัวอย่างกุ้งสุ่ม</span><span id="out_sample">0.00 กก.</span></div>
     <div class="tline"><span>น้ำหนักดิบก่อนหัก</span><span id="out_gross">0.00 กก.</span></div>
     <div class="tline"><span>หักเปอร์เซ็นต์</span><span id="out_deduct">0% (0.00 กก.)</span></div>
     <div class="tdiv"></div>
@@ -455,7 +458,7 @@
     const nimNet  = nimGroup.sumNet(wTare);
 
     const basketNet = (wBasket - wTare) * nBasket;
-    const grossNet = basketNet + restNet;
+    const grossNet = basketNet + restNet + sampleNet;
     const deductAmount = grossNet * (deductPercent / 100);
     const net = grossNet - deductAmount;
     const total = price * net;
@@ -464,13 +467,17 @@
     const grandTotal = total + foyTotal + nimTotal;
     const totalWeight = net + foyNet + nimNet;
 
+    document.getElementById('restGross').textContent = fmt(restGroup.sumRaw()) + ' กก.';
     document.getElementById('restSubtotal').textContent = fmt(restNet) + ' กก.';
     document.getElementById('sampleSubtotal').textContent = fmt(sampleNet) + ' กก.';
+    document.getElementById('shrimpFoyGross').textContent = fmt(foyGroup.sumRaw()) + ' กก.';
     document.getElementById('shrimpFoySubtotal').textContent = fmt(foyNet) + ' กก.';
+    document.getElementById('shrimpNimGross').textContent = fmt(nimGroup.sumRaw()) + ' กก.';
     document.getElementById('shrimpNimSubtotal').textContent = fmt(nimNet) + ' กก.';
 
     document.getElementById('out_basket_net').textContent = fmt(basketNet) + ' กก.';
     document.getElementById('out_rest').textContent = fmt(restNet) + ' กก.';
+    document.getElementById('out_sample').textContent = fmt(sampleNet) + ' กก.';
     document.getElementById('out_gross').textContent = fmt(grossNet) + ' กก.';
     document.getElementById('out_deduct').textContent = deductPercent + '% (' + fmt(deductAmount) + ' กก.)';
     document.getElementById('out_net').innerHTML = fmt(net) + '<span style="font-size:16px; color:var(--ink-dim)"> กก.</span>';
@@ -501,10 +508,14 @@
   });
 
   calculate();
+</script>
 
-  if('serviceWorker' in navigator){
+<script>
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {
+        // ignore registration errors (e.g. running from file://)
+      });
     });
   }
 </script>
