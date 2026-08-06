@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shrimp-calculator-v4';
+const CACHE_NAME = 'shrimp-calculator-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -25,11 +25,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first: always try to get the latest file from the server first.
+// Network-first: always try to get the latest file from the server first,
+// bypassing the browser's HTTP cache so updates show up immediately.
 // Only fall back to the cached copy if there's no internet connection.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
