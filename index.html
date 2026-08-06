@@ -212,6 +212,30 @@
   }
   .add-row:active{ background: var(--panel-2); }
 
+  .mode-toggle{
+    display:flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mode-btn{
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 9px 8px;
+    border-radius: 8px;
+    font-family: 'Noto Sans Thai', 'Sarabun', system-ui, sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mode-btn.active{
+    background: var(--teal-accent);
+    border-color: var(--teal-accent);
+    color: var(--bg);
+  }
+  .mode-btn:active{ opacity: 0.85; }
+
   .rest-subtotal{
     display:flex;
     justify-content: space-between;
@@ -287,9 +311,22 @@
 
   <div class="panel">
     <div class="panel-title">กุ้งฝอย <span style="text-transform:none; font-weight:400;">(ใส่ได้หลายรายการ)</span></div>
-    <div id="shrimpFoyRows"></div>
-    <button type="button" class="add-row" id="addShrimpFoy">+ เพิ่มกุ้งฝอย</button>
-    <div class="rest-subtotal"><span>น้ำหนักก่อนหักตะกร้า</span><span id="shrimpFoyGross">0.00 กก.</span></div>
+    <div class="mode-toggle" id="foyModeToggle">
+      <button type="button" class="mode-btn active" data-mode="weigh">ชั่งน้ำหนัก</button>
+      <button type="button" class="mode-btn" data-mode="percent">หัก % จากน้ำหนักรวม</button>
+    </div>
+    <div id="foyWeighMode">
+      <div id="shrimpFoyRows"></div>
+      <button type="button" class="add-row" id="addShrimpFoy">+ เพิ่มกุ้งฝอย</button>
+    </div>
+    <div id="foyPercentMode" style="display:none;">
+      <div class="field">
+        <label>หักเปอร์เซ็นต์กุ้งฝอย <span class="unit">(% จากน้ำหนักรวมหลังหักตะกร้า)</span></label>
+        <input type="number" id="foyPercent" inputmode="decimal" step="0.1" placeholder="0.0">
+      </div>
+    </div>
+    <div class="rest-subtotal" id="foyGrossRow"><span>น้ำหนักก่อนหักตะกร้า</span><span id="shrimpFoyGross">0.00 กก.</span></div>
+    <div class="rest-subtotal" id="foyBaseRow" style="display:none;"><span>ฐานคำนวณ (น้ำหนักรวมหลังหักตะกร้า)</span><span id="shrimpFoyBase">0.00 กก.</span></div>
     <div class="rest-subtotal"><span>รวมน้ำหนักกุ้งฝอยสุทธิ</span><span id="shrimpFoySubtotal">0.00 กก.</span></div>
   </div>
 
@@ -362,8 +399,31 @@
 </div>
 
 <script>
-  const baseIds = ['w_basket','w_tare','n_basket','deductPercent','price','priceFoy','priceNim'];
+  const baseIds = ['w_basket','w_tare','n_basket','deductPercent','price','priceFoy','priceNim','foyPercent'];
   const inputs = Object.fromEntries(baseIds.map(id => [id, document.getElementById(id)]));
+
+  let foyMode = 'weigh';
+  const foyModeToggle = document.getElementById('foyModeToggle');
+  const foyWeighMode = document.getElementById('foyWeighMode');
+  const foyPercentMode = document.getElementById('foyPercentMode');
+  const foyGrossRow = document.getElementById('foyGrossRow');
+  const foyBaseRow = document.getElementById('foyBaseRow');
+
+  function setFoyMode(mode){
+    foyMode = mode;
+    foyModeToggle.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    foyWeighMode.style.display = mode === 'weigh' ? '' : 'none';
+    foyPercentMode.style.display = mode === 'percent' ? '' : 'none';
+    foyGrossRow.style.display = mode === 'weigh' ? '' : 'none';
+    foyBaseRow.style.display = mode === 'percent' ? '' : 'none';
+  }
+
+  foyModeToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn) return;
+    setFoyMode(btn.dataset.mode);
+    calculate();
+  });
 
   function num(el){
     const v = parseFloat(el.value);
@@ -451,14 +511,15 @@
     const price   = num(inputs.price);
     const priceFoy= num(inputs.priceFoy);
     const priceNim= num(inputs.priceNim);
+    const foyPercent = num(inputs.foyPercent);
 
     const restNet = restGroup.sumNet(wTare);
     const sampleNet = sampleGroup.sumRaw();
-    const foyNet  = foyGroup.sumNet(wTare);
     const nimNet  = nimGroup.sumNet(wTare);
 
     const basketNet = (wBasket - wTare) * nBasket;
     const grossNet = basketNet + restNet + sampleNet;
+    const foyNet = foyMode === 'percent' ? grossNet * (foyPercent / 100) : foyGroup.sumNet(wTare);
     const deductAmount = grossNet * (deductPercent / 100);
     const net = grossNet - deductAmount;
     const total = price * net;
@@ -471,6 +532,7 @@
     document.getElementById('restSubtotal').textContent = fmt(restNet) + ' กก.';
     document.getElementById('sampleSubtotal').textContent = fmt(sampleNet) + ' กก.';
     document.getElementById('shrimpFoyGross').textContent = fmt(foyGroup.sumRaw()) + ' กก.';
+    document.getElementById('shrimpFoyBase').textContent = fmt(grossNet) + ' กก.';
     document.getElementById('shrimpFoySubtotal').textContent = fmt(foyNet) + ' กก.';
     document.getElementById('shrimpNimGross').textContent = fmt(nimGroup.sumRaw()) + ' กก.';
     document.getElementById('shrimpNimSubtotal').textContent = fmt(nimNet) + ' กก.';
@@ -504,6 +566,7 @@
     sampleGroup.reset();
     foyGroup.reset();
     nimGroup.reset();
+    setFoyMode('weigh');
     calculate();
   });
 
