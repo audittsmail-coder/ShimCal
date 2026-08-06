@@ -262,6 +262,17 @@
     cursor: pointer;
   }
   .reset:active{ background: var(--panel-2); }
+
+  .credit{
+    text-align: right;
+    margin-top: 16px;
+    font-family: 'Space Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal-accent);
+    opacity: 0.65;
+  }
 </style>
 </head>
 <body>
@@ -397,6 +408,7 @@
   </div>
 
   <button class="reset" id="resetBtn">ล้างค่าทั้งหมด</button>
+  <div class="credit">Crafted by · Singha Jewvutthipong</div>
 </div>
 
 <script>
