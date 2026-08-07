@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shrimp-calculator-v5';
+const CACHE_NAME = 'shrimp-calculator-__BUILD_VERSION__';
 const ASSETS = [
   './',
   './index.html',
